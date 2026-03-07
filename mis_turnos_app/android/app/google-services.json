@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "121151222216",
+    "project_id": "mis-turnos-app-cac3c",
+    "storage_bucket": "mis-turnos-app-cac3c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:121151222216:android:e175d2098cb16c5efa50fd",
+        "android_client_info": {
+          "package_name": "com.misturnos.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBynjE1Ppe5kcsSPeDbEElhlhOX8qKmick"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
