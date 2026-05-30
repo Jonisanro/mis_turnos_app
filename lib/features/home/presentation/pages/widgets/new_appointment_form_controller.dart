@@ -8,32 +8,29 @@ import 'package:uuid/uuid.dart';
 /// Centraliza los [TextEditingController] y la lógica de duración y construcción del modelo.
 class NewAppointmentFormController {
   NewAppointmentFormController()
-      : nombre = TextEditingController(),
-        apellido = TextEditingController(),
+      : clientName = TextEditingController(),
+        telefono = TextEditingController(),
         fecha = TextEditingController(),
         horaInicio = TextEditingController(),
         horaFin = TextEditingController(),
         motivo = TextEditingController(),
-        telefono = TextEditingController(),
         observaciones = TextEditingController();
 
-  final TextEditingController nombre;
-  final TextEditingController apellido;
+  final TextEditingController clientName;
+  final TextEditingController telefono;
   final TextEditingController fecha;
   final TextEditingController horaInicio;
   final TextEditingController horaFin;
   final TextEditingController motivo;
-  final TextEditingController telefono;
   final TextEditingController observaciones;
 
   void dispose() {
-    nombre.dispose();
-    apellido.dispose();
+    clientName.dispose();
+    telefono.dispose();
     fecha.dispose();
     horaInicio.dispose();
     horaFin.dispose();
     motivo.dispose();
-    telefono.dispose();
     observaciones.dispose();
   }
 
@@ -53,24 +50,17 @@ class NewAppointmentFormController {
     }
   }
 
-  /// Precarga los campos del formulario a partir de un turno existente
-  /// (modo edición).
+  /// Precarga los campos del formulario a partir de un turno existente (modo edición).
   void loadFrom(Appointment appointment) {
-    final parts = appointment.clientName.trim().split(' ');
-    nombre.text = parts.isNotEmpty ? parts.first : '';
-    apellido.text = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    clientName.text = appointment.clientName;
     telefono.text = appointment.phone;
     fecha.text = DateFormat('yyyy-MM-dd').format(appointment.dateTime);
     horaInicio.text = DateFormat('HH:mm').format(appointment.dateTime);
-    final end =
-        appointment.dateTime.add(Duration(minutes: appointment.duration));
+    final end = appointment.dateTime.add(Duration(minutes: appointment.duration));
     horaFin.text = DateFormat('HH:mm').format(end);
     motivo.text = appointment.service;
     observaciones.text = appointment.comments;
   }
-
-  String get clientName =>
-      '${nombre.text.trim()} ${apellido.text.trim()}';
 
   /// Fecha/hora de inicio del turno. [null] si los datos no son válidos.
   DateTime? get dateTime {
@@ -83,9 +73,6 @@ class NewAppointmentFormController {
   }
 
   /// Construye [AppointmentModel] con los datos actuales del formulario.
-  /// [hasPaid] y [deposit] (monto de la seña) se pasan desde el widget; [owner]
-  /// es el uid del usuario autenticado. En modo edición se pasan [id] y
-  /// [status] del turno existente; en alta se genera un id nuevo.
   AppointmentModel buildAppointment({
     required bool hasPaid,
     required double deposit,
@@ -99,7 +86,7 @@ class NewAppointmentFormController {
 
     return AppointmentModel(
       id: appointmentId,
-      clientName: clientName,
+      clientName: clientName.text.trim(),
       phone: telefono.text.trim(),
       dateTime: dt,
       duration: duration,

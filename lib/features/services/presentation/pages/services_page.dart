@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mis_turnos_app/core/theme/app_theme.dart';
 import 'package:mis_turnos_app/features/login/presentation/providers/login_provider.dart';
@@ -220,6 +221,7 @@ class _ServiceFormDialogState extends ConsumerState<ServiceFormDialog> {
             TextFormField(
               controller: _nameController,
               textCapitalization: TextCapitalization.words,
+              maxLength: 35,
               decoration: const InputDecoration(
                 labelText: 'Nombre del servicio',
                 hintText: 'Ej: Uñas esculpidas',
@@ -240,9 +242,10 @@ class _ServiceFormDialogState extends ConsumerState<ServiceFormDialog> {
                     Icon(Icons.schedule_outlined, color: AppColors.secondary),
               ),
               keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               validator: (v) {
                 final n = int.tryParse(v?.trim() ?? '');
-                if (n == null || n <= 0) return 'Ingresá minutos válidos';
+                if (n == null || n < 15) return 'Mínimo 15 minutos';
                 return null;
               },
             ),
@@ -255,7 +258,11 @@ class _ServiceFormDialogState extends ConsumerState<ServiceFormDialog> {
                 prefixIcon:
                     Icon(Icons.payments_outlined, color: AppColors.secondary),
               ),
-              keyboardType: TextInputType.number,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+              ],
               validator: (v) {
                 final n = double.tryParse(v?.trim() ?? '');
                 if (n == null || n < 0) return 'Ingresá un precio válido';
