@@ -69,9 +69,22 @@ class _TurnosPageState extends ConsumerState<CalendarWidget> {
           appointments: turnos,
           headerTrailing: context.isMobile
               ? null
-              : ElevatedButton(
+              : ElevatedButton.icon(
                   onPressed: () => _openNewAppointmentDialog(context),
-                  child: const Text('Agendar Turno'),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Agendar Turno'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                 ),
         );
       },
@@ -283,7 +296,11 @@ class _ViewToggle extends StatelessWidget {
   final bool compact;
 
   static const double compactWidth = 80;
-  static const double fullWidth = 140;
+
+  /// Ancho del lado derecho del header: holgado para el botón "Agendar Turno"
+  /// (ícono + texto, ~160px) y alineado con el ancho real del toggle en desktop,
+  /// de modo que la fecha quede centrada.
+  static const double fullWidth = 175;
 
   @override
   Widget build(BuildContext context) {
