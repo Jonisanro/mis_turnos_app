@@ -4,6 +4,30 @@ Registro de cambios, decisiones técnicas y su impacto en los flujos de la aplic
 
 ---
 
+## [0.2.1] — 2026-05-30
+
+### 📅 Vista de 3 días en mobile
+
+#### Qué había antes
+- En mobile, la vista semanal del `SfCalendar` repartía 7 columnas en ~460px → ~65px por día. Los turnos quedaban prácticamente ilegibles (solo se alcanzaba a leer "S..." de "Soledad")
+
+#### Qué se hizo
+- **Nueva abstracción `AppCalendarView { day, threeDays, week }`** sobre el `CalendarView` de Syncfusion: diferencia "3 días" (mobile) de "semana" (desktop), que comparten `CalendarView.week` pero con distinto número de días visibles
+- **Helpers `_toSfView` / `_toDaysCount`**: traducen el enum propio a la API de Syncfusion
+- **Vista de 3 días en mobile** vía `TimeSlotViewSettings.numberOfDaysInView: 3` → ~150px por columna, turnos legibles ("Soledad / Corte de pelo")
+- **Toggle adaptativo (`_ViewToggle`)**: en mobile ofrece `Día` / `3 días` (ícono `view_column_outlined`); en desktop se mantiene `Día` / `Semana`
+- La navegación con flechas avanza de a 3 días (mobile) o 7 (desktop) automáticamente, derivado de `numberOfDaysInView`
+
+#### Decisiones tomadas
+- Syncfusion **v28** no tiene una vista nativa de "3 días": se simula con `CalendarView.week` + `numberOfDaysInView: 3`
+- `numberOfDaysInView` es propiedad de **`TimeSlotViewSettings`**, no del widget `SfCalendar` (la versión instalada, 28.2.11, rechaza esa propiedad en el widget raíz). Las vistas `day` y `week` usan el default `-1` (1 y 7 días naturales); solo `threeDays` fuerza 3 columnas
+- Desktop mantiene la semana completa: el ancho disponible sí permite leer 7 columnas
+
+#### Flujos afectados
+- **Flujo de agenda en mobile**: el emprendedor puede leer el nombre del cliente y el servicio de cada turno sin tocarlo, en una vista de 3 días que abarca más que la diaria
+
+---
+
 ## [0.2.0] — 2026-05-29
 
 ### Resumen ejecutivo
