@@ -3,29 +3,63 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mis_turnos_app/features/login/presentation/providers/login_provider.dart';
 
-class LoginCard extends StatefulWidget {
+class LoginCard extends ConsumerStatefulWidget {
   const LoginCard({super.key});
 
   @override
-  State<LoginCard> createState() => _LoginCardState();
+  ConsumerState<LoginCard> createState() => _LoginCardState();
 }
 
-bool isPasswordVisible = false;
-//Controladores de los campos de texto
-final TextEditingController emailController = TextEditingController();
-final TextEditingController passwordController = TextEditingController();
+class _LoginCardState extends ConsumerState<LoginCard> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
-class _LoginCardState extends State<LoginCard> {
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+
+    final authService = ref.read(loginProvider);
+    final result = await authService.signInWithEmail(
+      _emailController.text,
+      _passwordController.text,
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result.isSuccess) {
+      // El guard del router redirige a /home, pero navegamos explícito para
+      // que sea inmediato.
+      context.go('/home');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.error ?? 'Error al iniciar sesión'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(
-      elevation: 5, // Ajusta la elevación según tus necesidades
+      elevation: 5,
       borderRadius: BorderRadius.circular(15),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 45.0),
+        padding: const EdgeInsets.symmetric(horizontal: 45.0),
         width: 400,
-        height: 450,
-        decoration: BoxDecoration(
+        height: 500,
+        decoration: const BoxDecoration(
           borderRadius: BorderRadius.all(Radius.circular(15)),
           gradient: LinearGradient(
             transform: GradientRotation(3.14 * 90),
@@ -41,11 +75,26 @@ class _LoginCardState extends State<LoginCard> {
         ),
         child: Column(
           children: [
-            PrincipalTextsLogin(),
-            SizedBox(height: 50),
-            LoginForm(),
-            SizedBox(height: 50),
-            LoginButton()
+            const PrincipalTextsLogin(),
+            const SizedBox(height: 40),
+            AuthTextFields(
+              emailController: _emailController,
+              passwordController: _passwordController,
+              isPasswordVisible: _isPasswordVisible,
+              onToggleVisibility: () =>
+                  setState(() => _isPasswordVisible = !_isPasswordVisible),
+            ),
+            const SizedBox(height: 30),
+            PrimaryAuthButton(
+              label: 'Iniciar sesión',
+              isLoading: _isLoading,
+              onPressed: _login,
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => context.go('/register'),
+              child: const Text('¿No tenés cuenta? Registrate'),
+            ),
           ],
         ),
       ),
@@ -53,177 +102,142 @@ class _LoginCardState extends State<LoginCard> {
   }
 }
 
-//TODO: VER DE PASAR LOS WIDGETS A ARCHIVOS SEPARADOS
-
 class PrincipalTextsLogin extends StatelessWidget {
-  const PrincipalTextsLogin({
+  const PrincipalTextsLogin({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        Padding(padding: EdgeInsets.all(15)),
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+          child: Text(
+            'Iniciar sesión con tu email',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+        ),
+        Text(
+          'Aplicación de turnos, para agendar tus turnos de manera fácil y rápida',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+        ),
+      ],
+    );
+  }
+}
+
+/// Campos de email + password reutilizables por login y registro.
+class AuthTextFields extends StatelessWidget {
+  const AuthTextFields({
     super.key,
+    required this.emailController,
+    required this.passwordController,
+    required this.isPasswordVisible,
+    required this.onToggleVisibility,
   });
+
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final bool isPasswordVisible;
+  final VoidCallback onToggleVisibility;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Padding(
-          padding: EdgeInsets.all(15),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-          child: Text(
-            'Iniciar sesión con tu email',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        Text(
-          'Applicación de turnos, para agendar tus turnos de manera fácil y rápida',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.normal,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class LoginForm extends StatefulWidget {
-  const LoginForm({super.key});
-
-  @override
-  State<LoginForm> createState() => _LoginFormState();
-}
-
-class _LoginFormState extends State<LoginForm> {
-  @override
-  Widget build(BuildContext context) {
-    return Form(
-        child: Column(
-      children: [
         SizedBox(
           height: 40,
           child: TextFormField(
             controller: emailController,
-            decoration: loginInputDecoration().copyWith(
+            keyboardType: TextInputType.emailAddress,
+            decoration: _authInputDecoration().copyWith(
               hintText: 'Email',
-              prefixIcon: Icon(
-                size: 20,
-                Icons.email,
-                color: Colors.grey,
-              ),
+              prefixIcon: const Icon(Icons.email, size: 20, color: Colors.grey),
             ),
           ),
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         SizedBox(
           height: 40,
           child: TextFormField(
             controller: passwordController,
             obscureText: !isPasswordVisible,
-            decoration: loginInputDecoration().copyWith(
+            decoration: _authInputDecoration().copyWith(
+              hintText: 'Password',
+              prefixIcon: const Icon(Icons.lock, size: 20, color: Colors.grey),
               suffixIcon: IconButton(
                 icon: Icon(
+                  isPasswordVisible ? Icons.visibility_off : Icons.visibility,
                   size: 20,
-                  Icons.visibility,
                   color: Colors.grey,
                 ),
-                onPressed: () {
-                  setState(() {
-                    isPasswordVisible = !isPasswordVisible;
-                  });
-                },
-                color: Colors.grey,
-              ),
-              hintText: 'Password',
-              prefixIcon: Icon(
-                size: 20,
-                Icons.lock,
-                color: Colors.grey,
+                onPressed: onToggleVisibility,
               ),
             ),
           ),
-        )
+        ),
       ],
-    ));
+    );
   }
 
-  InputDecoration loginInputDecoration() {
+  InputDecoration _authInputDecoration() {
+    final border = OutlineInputBorder(
+      borderSide: const BorderSide(color: Colors.transparent),
+      borderRadius: BorderRadius.circular(20.0),
+    );
     return InputDecoration(
       isDense: true,
       filled: true,
-      fillColor: Colors.grey[200], // Color de fondo fijo
-      border: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.transparent),
-        borderRadius: BorderRadius.circular(20.0), // Bordes redondeados siempre
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.transparent),
-        borderRadius: BorderRadius.circular(20.0),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.transparent),
-        borderRadius: BorderRadius.circular(20.0),
-      ),
-      disabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.transparent),
-        borderRadius: BorderRadius.circular(20.0),
-      ),
+      fillColor: Colors.grey[200],
+      border: border,
+      enabledBorder: border,
+      focusedBorder: border,
+      disabledBorder: border,
       focusColor: Colors.transparent,
       hoverColor: Colors.transparent,
-      hintStyle: TextStyle(fontSize: 14),
+      hintStyle: const TextStyle(fontSize: 14),
     );
   }
 }
 
-class LoginButton extends ConsumerStatefulWidget {
-  const LoginButton({super.key});
+/// Botón principal de autenticación (login / registro) con estado de carga.
+class PrimaryAuthButton extends StatelessWidget {
+  const PrimaryAuthButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.isLoading = false,
+  });
 
-  @override
-  _LoginButtonState createState() => _LoginButtonState();
-}
+  final String label;
+  final VoidCallback onPressed;
+  final bool isLoading;
 
-class _LoginButtonState extends ConsumerState<LoginButton> {
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
-      onPressed: () async {
-        final authService = ref.read(loginProvider);
-        final user = await authService.signInWithEmail(
-          emailController.text,
-          passwordController.text,
-        );
-        if (user != null) {
-          SnackBar snackBar = SnackBar(
-            content: Text('Inicio de sesión exitoso'),
-            backgroundColor: Colors.green,
-          );
-          ScaffoldMessenger.of(context).showSnackBar(snackBar);
-          context.go('/home');
-        } else {
-          SnackBar snackBar = SnackBar(
-            content: Text('Error al iniciar sesión'),
-            backgroundColor: Colors.red,
-          );
-          ScaffoldMessenger.of(context).showSnackBar(snackBar);
-        }
-      },
+      onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Color(0xFF1C1C1E), // Color oscuro del botón
-        minimumSize: const Size(350, 45), // Ancho y alto del botón
+        backgroundColor: const Color(0xFF1C1C1E),
+        minimumSize: const Size(350, 45),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10), // Bordes redondeados
+          borderRadius: BorderRadius.circular(10),
         ),
       ),
-      child: const Text(
-        'Iniciar sesión',
-        style: TextStyle(
-          fontSize: 18,
-          color: Colors.white, // Texto en color blanco
-        ),
-      ),
+      child: isLoading
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : Text(
+              label,
+              style: const TextStyle(fontSize: 18, color: Colors.white),
+            ),
     );
   }
 }

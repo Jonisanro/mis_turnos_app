@@ -1,48 +1,40 @@
 import 'package:flutter/material.dart';
-/* import 'package:mis_turnos_app/core/shared_widgets/background_asset_widget.dart'; */
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mis_turnos_app/features/home/presentation/pages/widgets/calendar_widget.dart';
+import 'package:mis_turnos_app/features/home/presentation/pages/widgets/day_summary_widget.dart';
+import 'package:mis_turnos_app/features/login/presentation/providers/login_provider.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    return Stack(
-      children: [
-        /*        BackgroundAssetWidget(), */
-        Container(
-          child: Column(
-            children: [
-              // Primera fila
-              Row(
-                children: [
-                  Expanded(
-                    //TODO WIDGET 1 A DEFINIR
-                    child: Container(
-                      height: size.height * 0.4,
-                      color: Colors.pink[50],
-                      child: Center(child: Text('Widget 1')),
-                    ),
-                  ),
-                  Expanded(
-                    //TODO WIDGET 2 A DEFINIR
-                    child: Container(
-                      height: size.height * 0.4,
-                      color: Colors.blueGrey,
-                      child: Center(child: Text('Widget 2')),
-                    ),
-                  ),
-                ],
-              ),
-              // Segunda fila con el calendario
-              Expanded(
-                child: CalendarWidget(),
-              ),
-            ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mis turnos'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.design_services),
+            tooltip: 'Mis servicios',
+            onPressed: () => context.push('/services'),
           ),
-        ),
-      ],
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Cerrar sesión',
+            onPressed: () async {
+              // El guard del router redirige a / al cerrar sesión.
+              await ref.read(loginProvider).signOut();
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          const DaySummaryWidget(),
+          Expanded(child: CalendarWidget()),
+        ],
+      ),
     );
   }
 }

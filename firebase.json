@@ -1,1 +1,28 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"mis-turnos-app-cac3c","appId":"1:121151222216:android:e175d2098cb16c5efa50fd","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"mis-turnos-app-cac3c","configurations":{"android":"1:121151222216:android:e175d2098cb16c5efa50fd","ios":"1:121151222216:ios:d4dd55fe1cda6b32fa50fd","macos":"1:121151222216:ios:d4dd55fe1cda6b32fa50fd","web":"1:121151222216:web:d587c5b3bc9aac1efa50fd","windows":"1:121151222216:web:2962066d84cabf0afa50fd"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "mis-turnos-app-cac3c",
+          "appId": "1:121151222216:android:e175d2098cb16c5efa50fd",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "mis-turnos-app-cac3c",
+          "configurations": {
+            "android": "1:121151222216:android:e175d2098cb16c5efa50fd",
+            "ios": "1:121151222216:ios:d4dd55fe1cda6b32fa50fd",
+            "macos": "1:121151222216:ios:d4dd55fe1cda6b32fa50fd",
+            "web": "1:121151222216:web:d587c5b3bc9aac1efa50fd",
+            "windows": "1:121151222216:web:2962066d84cabf0afa50fd"
+          }
+        }
+      }
+    }
+  }
+}

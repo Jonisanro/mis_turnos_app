@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:mis_turnos_app/core/constants/breakpoints.dart';
 import 'package:mis_turnos_app/features/home/domain/entities/appointment.dart'
     as model;
 import 'package:mis_turnos_app/features/home/presentation/models/custom_appointment_model.dart';
@@ -14,123 +16,194 @@ class CalendarWidget extends ConsumerStatefulWidget {
 }
 
 class _TurnosPageState extends ConsumerState<CalendarWidget> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(appointmentsProvider.notifier).reload();
-    });
-  }
-
   Future<void> _openNewAppointmentDialog(BuildContext context) async {
     await showDialog(
       context: context,
       builder: (context) => const NewAppointmentDialogWidget(),
     );
-
-    // Recargar turnos después de cerrar el diálogo
-    if (mounted) {
-      ref.read(appointmentsProvider.notifier).reload();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final turnosState = ref.watch(appointmentsProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Turnos')),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (turnosState is AsyncLoading) const LinearProgressIndicator(),
-          Expanded(
-            child: turnosState.when(
-              data: (turnos) {
-                if (turnos.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('No hay turnos disponibles.'),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
-                          ),
-                          onPressed: () => _openNewAppointmentDialog(context),
-                          child: const Text('Agendar Turno'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                          ),
-                          onPressed: () => _openNewAppointmentDialog(context),
-                          child: const Text('Agendar Turno'),
-                        ),
-                      ],
-                    ),
-                    Expanded(
-                      child: SfCalendarWidget(appointments: turnos),
-                    ),
-                  ],
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
+    return turnosState.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e')),
+      data: (turnos) {
+        if (turnos.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('No hay turnos disponibles.'),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                  ),
+                  onPressed: () => _openNewAppointmentDialog(context),
+                  child: const Text('Agendar Turno'),
+                ),
+              ],
             ),
+          );
+        }
+
+        return SfCalendarWidget(
+          appointments: turnos,
+          headerTrailing: ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            onPressed: () => _openNewAppointmentDialog(context),
+            child: const Text('Agendar Turno'),
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ref.read(appointmentsProvider.notifier).reload();
-        },
-        child: const Icon(Icons.refresh),
-      ),
+        );
+      },
     );
   }
 }
 
-class SfCalendarWidget extends StatelessWidget {
+class SfCalendarWidget extends StatefulWidget {
   final List<model.Appointment> appointments;
-  const SfCalendarWidget({required this.appointments, super.key});
+  final Widget? headerTrailing;
+
+  const SfCalendarWidget({
+    required this.appointments,
+    this.headerTrailing,
+    super.key,
+  });
+
+  @override
+  State<SfCalendarWidget> createState() => _SfCalendarWidgetState();
+}
+
+class _SfCalendarWidgetState extends State<SfCalendarWidget> {
+  final CalendarController _calendarController = CalendarController();
+  late DateTime _visibleDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _visibleDate = DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    _calendarController.dispose();
+    super.dispose();
+  }
+
+  /// Al tocar un turno existente, abre el diálogo en modo edición.
+  void _handleTap(CalendarTapDetails details) {
+    if (details.targetElement != CalendarElement.appointment) return;
+    final tapped = details.appointments;
+    if (tapped == null || tapped.isEmpty) return;
+    final ca = tapped.first as CustomAppointment;
+
+    final appointment = model.Appointment(
+      id: ca.id,
+      clientName: ca.subject,
+      phone: ca.phone,
+      dateTime: ca.startTime,
+      duration: ca.endTime.difference(ca.startTime).inMinutes,
+      hasPaid: ca.hasPaid,
+      deposit: ca.deposit,
+      service: ca.service,
+      status: ca.status,
+      comments: ca.notes ?? '',
+      owner: ca.owner,
+    );
+
+    showDialog(
+      context: context,
+      builder: (_) => NewAppointmentDialogWidget(appointment: appointment),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SfCalendar(
-      cellBorderColor: Colors.black,
-      backgroundColor: Colors.pink[50],
-      scheduleViewMonthHeaderBuilder:
-          (BuildContext buildContext, ScheduleViewMonthHeaderDetails details) {
-        return Container(
-          color: Colors.red,
-          child: Text(
-            '${details.date.month} / ${details.date.year}',
-            style: const TextStyle(color: Colors.white),
+    final defaultView =
+        context.isMobile ? CalendarView.day : CalendarView.week;
+    final monthYearLabel = DateFormat('MMMM yyyy', 'es').format(_visibleDate);
+    // Capitalizar primera letra del mes
+    final monthYearDisplay =
+        '${monthYearLabel[0].toUpperCase()}${monthYearLabel.substring(1)}';
+
+    return Column(
+      children: [
+        // Header: mes centrado, botón a la derecha
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Row(
+            children: [
+              Expanded(child: const SizedBox.shrink()),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: () => _calendarController.backward?.call(),
+                    icon: const Icon(Icons.arrow_back_ios),
+                    tooltip: 'Semana/día anterior',
+                    padding: const EdgeInsets.all(8.0),
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    monthYearDisplay,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(width: 12),
+                  IconButton(
+                    onPressed: () => _calendarController.forward?.call(),
+                    icon: const Icon(Icons.arrow_forward_ios),
+                    tooltip: 'Semana/día siguiente',
+                    padding: const EdgeInsets.all(8.0),
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: widget.headerTrailing ?? const SizedBox.shrink(),
+                ),
+              ),
+            ],
           ),
-        );
-      },
-      timeSlotViewSettings: const TimeSlotViewSettings(
-        timeInterval: Duration(minutes: 30),
-      ),
-      view: CalendarView.week,
-      allowedViews: const [CalendarView.week, CalendarView.day],
-      dataSource: AppointmentsDataSource(appointments),
-      appointmentBuilder: _buildAppointment,
+        ),
+        Expanded(
+          child: SfCalendar(
+            controller: _calendarController,
+            initialDisplayDate: DateTime.now(),
+            headerHeight: 0,
+            cellBorderColor: Colors.black,
+            backgroundColor: Colors.pink[50],
+            timeSlotViewSettings: const TimeSlotViewSettings(
+              timeInterval: Duration(minutes: 60),
+              timeIntervalHeight: 80,
+            ),
+            view: defaultView,
+            allowedViews: const [CalendarView.week, CalendarView.day],
+            dataSource: AppointmentsDataSource(widget.appointments),
+            appointmentBuilder: _buildAppointment,
+            onTap: _handleTap,
+            onViewChanged: (ViewChangedDetails details) {
+              if (details.visibleDates.isEmpty) return;
+              final newDate = details.visibleDates.first;
+              // Diferir setState: onViewChanged puede dispararse durante el build del calendario.
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && _visibleDate != newDate) {
+                  setState(() => _visibleDate = newDate);
+                }
+              });
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -144,6 +217,7 @@ class AppointmentsDataSource extends CalendarDataSource {
         service: appointment.service,
         status: appointment.status,
         owner: appointment.owner,
+        phone: appointment.phone,
         subject: appointment.clientName,
         startTime: appointment.dateTime,
         deposit: appointment.deposit,

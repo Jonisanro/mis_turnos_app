@@ -1,3 +1,89 @@
+# ── Flutter / Dart ────────────────────────────────────────────────────────────
 
-# FVM Version Cache
+# Carpeta de herramientas de Dart/Flutter (generada automáticamente).
+# Incluye el perfil de Chrome que crea "flutter run -d chrome" y los artefactos
+# de build_runner. Nada de esto es código: se regenera solo.
+.dart_tool/
+
+# Salida de la compilación (puede pesar cientos de MB).
+/build/
+
+# Metadatos del proyecto que Flutter regenera automáticamente.
+.metadata
+
+# Archivos de plugins que Flutter regenera en cada "flutter pub get".
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Caché local de pub (dependencias descargadas). Cada dev tiene el suyo.
+.pub-cache/
+.pub/
+
+# Documentación generada por "dart doc".
+**/doc/api/
+
+# Artefactos de simbolización/ofuscación (release builds).
+app.*.symbols
+app.*.map.json
+
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code — launch.json guarda rutas locales y configuraciones de debug personales.
+# Si el equipo comparte settings de workspace, sacar esta línea y commitear
+# solo .vscode/settings.json a mano.
+.vscode/
+
+
+# ── Sistemas operativos ───────────────────────────────────────────────────────
+
+.DS_Store          # macOS
+Thumbs.db          # Windows
+*.log              # logs genéricos
+
+
+# ── FVM (Flutter Version Manager) ────────────────────────────────────────────
+
+# La carpeta .fvm/ es local de cada máquina (symlink al SDK).
+# El archivo .fvmrc SÍ va al repo: le dice a todos qué versión de Flutter usar.
 .fvm/
+
+
+# ── Android / iOS / plataformas nativas ───────────────────────────────────────
+
+# Builds firmados de Android
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Keystore local (¡nunca al repo!)
+*.jks
+*.keystore
+
+
+# ── Firebase ──────────────────────────────────────────────────────────────────
+
+# google-services.json contiene credenciales. Si usás variables de entorno en CI
+# para generarlo, agregalo acá. Si lo commiteas (práctica común en proyectos
+# Flutter), dejá esta línea comentada.
+# google-services.json
+# GoogleService-Info.plist
+
+# firebase_options.dart lo genera FlutterFire CLI. Sus claves son públicas para
+# apps cliente (están embebidas en el JS/APK igual), pero si preferís no
+# exponerlas en el repo podés descomentarlo y proveerlo vía CI.
+# lib/firebase_options.dart
+
+
+# ── Archivos que SÍ van al repo (aclaración) ──────────────────────────────────
+
+# pubspec.lock  → se commitea en apps (garantiza builds reproducibles).
+# *.g.dart      → se commitean para que no haga falta correr build_runner al clonar.
+# .fvmrc        → le dice al equipo qué versión de Flutter usar.
+# firestore.rules → las reglas de seguridad de Firestore son código, van al repo.
