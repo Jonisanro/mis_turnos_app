@@ -7,6 +7,7 @@ class CustomAppointment extends Appointment {
   final String service;
   final String status;
   final String owner;
+  final String phone;
   final bool hasPaid;
   final double deposit;
 
@@ -15,6 +16,7 @@ class CustomAppointment extends Appointment {
     required this.service,
     required this.status,
     required this.owner,
+    required this.phone,
     required this.hasPaid,
     required this.deposit,
     required String subject,

@@ -1,0 +1,35 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Un turno solo puede ser leído/escrito por su dueño (el emprendedor).
+    // El filtrado por owner en la app NO es seguridad: estas reglas lo son.
+    match /appointment/{id} {
+      allow read: if request.auth != null
+        && resource.data.owner == request.auth.uid;
+
+      allow create: if request.auth != null
+        && request.resource.data.owner == request.auth.uid;
+
+      allow update, delete: if request.auth != null
+        && resource.data.owner == request.auth.uid
+        && request.resource.data.owner == request.auth.uid;
+    }
+
+    // Servicios del catálogo de cada emprendedor (Fase 5).
+    match /services/{id} {
+      allow read: if request.auth != null
+        && resource.data.owner == request.auth.uid;
+
+      allow create: if request.auth != null
+        && request.resource.data.owner == request.auth.uid;
+
+      allow update, delete: if request.auth != null
+        && resource.data.owner == request.auth.uid
+        && request.resource.data.owner == request.auth.uid;
+    }
+
+    // Todo lo demás queda denegado por defecto.
+  }
+}

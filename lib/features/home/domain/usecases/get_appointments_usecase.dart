@@ -6,7 +6,12 @@ class GetAppointmentsUsecase {
 
   GetAppointmentsUsecase({required this.repository});
 
-  Future<List<Appointment>> call() async {
-    return await repository.obtenerTurnos();
+  Future<List<Appointment>> call(String ownerId) async {
+    return await repository.obtenerTurnos(ownerId);
+  }
+
+  /// Stream en tiempo real de los turnos del usuario.
+  Stream<List<Appointment>> watch(String ownerId) {
+    return repository.watchTurnos(ownerId);
   }
 }

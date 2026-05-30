@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AppointmentModel {
   final String id;
   final String clientName;
+  final String phone;
   final DateTime dateTime;
   final int duration;
   final bool hasPaid;
@@ -16,6 +17,7 @@ class AppointmentModel {
   AppointmentModel({
     required this.id,
     required this.clientName,
+    this.phone = '',
     required this.dateTime,
     required this.duration,
     required this.deposit,
@@ -28,16 +30,20 @@ class AppointmentModel {
 
   factory AppointmentModel.fromMap(Map<String, dynamic> map) {
     return AppointmentModel(
-      id: map['id'],
-      clientName: map['clientName'],
-      dateTime: (map['dateTime'] as Timestamp).toDate(),
-      duration: map['duration'],
-      deposit: map['deposit'] ?? 0,
-      hasPaid: map['hasPaid'] ?? false,
-      service: map['service'],
-      status: map['status'] ?? 'none',
-      comments: map['comments'] ?? '',
-      owner: map['owner'] ?? '',
+      // Campos críticos con fallback seguro para evitar NPE con docs malformados.
+      id: map['id'] as String? ?? '',
+      clientName: map['clientName'] as String? ?? 'Sin nombre',
+      phone: map['phone'] as String? ?? '',
+      dateTime: map['dateTime'] != null
+          ? (map['dateTime'] as Timestamp).toDate()
+          : DateTime.now(),
+      duration: map['duration'] as int? ?? 0,
+      deposit: (map['deposit'] as num?)?.toDouble() ?? 0,
+      hasPaid: map['hasPaid'] as bool? ?? false,
+      service: map['service'] as String? ?? '',
+      status: map['status'] as String? ?? 'pendiente',
+      comments: map['comments'] as String? ?? '',
+      owner: map['owner'] as String? ?? '',
     );
   }
 
@@ -45,6 +51,7 @@ class AppointmentModel {
     return {
       'id': id,
       'clientName': clientName,
+      'phone': phone,
       'dateTime': dateTime,
       'duration': duration,
       'deposit': deposit,
