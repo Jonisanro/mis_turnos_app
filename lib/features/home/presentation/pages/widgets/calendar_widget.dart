@@ -12,6 +12,8 @@ import 'package:mis_turnos_app/features/home/presentation/providers/appointments
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class CalendarWidget extends ConsumerStatefulWidget {
+  const CalendarWidget({super.key});
+
   @override
   _TurnosPageState createState() => _TurnosPageState();
 }
@@ -39,15 +41,11 @@ class _TurnosPageState extends ConsumerState<CalendarWidget> {
               children: [
                 const Text('No hay turnos disponibles.'),
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
+                if (!context.isMobile)
+                  ElevatedButton(
+                    onPressed: () => _openNewAppointmentDialog(context),
+                    child: const Text('Agendar Turno'),
                   ),
-                  onPressed: () => _openNewAppointmentDialog(context),
-                  child: const Text('Agendar Turno'),
-                ),
               ],
             ),
           );
@@ -55,11 +53,12 @@ class _TurnosPageState extends ConsumerState<CalendarWidget> {
 
         return SfCalendarWidget(
           appointments: turnos,
-          headerTrailing: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-            onPressed: () => _openNewAppointmentDialog(context),
-            child: const Text('Agendar Turno'),
-          ),
+          headerTrailing: context.isMobile
+              ? null
+              : ElevatedButton(
+                  onPressed: () => _openNewAppointmentDialog(context),
+                  child: const Text('Agendar Turno'),
+                ),
         );
       },
     );
@@ -84,6 +83,9 @@ class _SfCalendarWidgetState extends State<SfCalendarWidget> {
   final CalendarController _calendarController = CalendarController();
   late DateTime _visibleDate;
 
+  /// Vista actual. `null` = usar el default responsive (day en mobile, week en desktop).
+  CalendarView? _currentView;
+
   @override
   void initState() {
     super.initState();
@@ -94,6 +96,16 @@ class _SfCalendarWidgetState extends State<SfCalendarWidget> {
   void dispose() {
     _calendarController.dispose();
     super.dispose();
+  }
+
+  CalendarView _effectiveView(BuildContext context) =>
+      _currentView ?? (context.isMobile ? CalendarView.day : CalendarView.week);
+
+  void _setView(CalendarView view) {
+    // Cambiar el controller ES la forma correcta de cambiar la vista en Syncfusion.
+    // Actualizar solo la prop `view:` del widget no es suficiente cuando hay controller.
+    _calendarController.view = view;
+    setState(() => _currentView = view);
   }
 
   /// Al tocar un turno existente, abre el diálogo en modo edición.
@@ -125,57 +137,74 @@ class _SfCalendarWidgetState extends State<SfCalendarWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final defaultView =
-        context.isMobile ? CalendarView.day : CalendarView.week;
+    final isMobile = context.isMobile;
+    final effectiveView = _effectiveView(context);
     final monthYearLabel = DateFormat('MMMM yyyy', 'es').format(_visibleDate);
-    // Capitalizar primera letra del mes
     final monthYearDisplay =
         '${monthYearLabel[0].toUpperCase()}${monthYearLabel.substring(1)}';
 
     return Column(
       children: [
-        // Header: mes centrado, botón a la derecha
+        // ── Header ────────────────────────────────────────────────────────
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
             children: [
-              Expanded(child: const SizedBox.shrink()),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    onPressed: () => _calendarController.backward?.call(),
-                    icon: const Icon(Icons.arrow_back_ios),
-                    tooltip: 'Semana/día anterior',
-                    padding: const EdgeInsets.all(8.0),
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    monthYearDisplay,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(width: 12),
-                  IconButton(
-                    onPressed: () => _calendarController.forward?.call(),
-                    icon: const Icon(Icons.arrow_forward_ios),
-                    tooltip: 'Semana/día siguiente',
-                    padding: const EdgeInsets.all(8.0),
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
+              // Toggle día / semana
+              _ViewToggle(
+                current: effectiveView,
+                onChanged: _setView,
+                compact: isMobile,
               ),
+              // Fecha centrada con navegación
               Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: () => _calendarController.backward?.call(),
+                      icon: const Icon(Icons.arrow_back_ios, size: 16),
+                      tooltip: effectiveView == CalendarView.day
+                          ? 'Día anterior'
+                          : 'Semana anterior',
+                      padding: const EdgeInsets.all(8),
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      monthYearDisplay,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () => _calendarController.forward?.call(),
+                      icon: const Icon(Icons.arrow_forward_ios, size: 16),
+                      tooltip: effectiveView == CalendarView.day
+                          ? 'Día siguiente'
+                          : 'Semana siguiente',
+                      padding: const EdgeInsets.all(8),
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+              // Botón acción (desktop) o espacio equivalente (mobile)
+              SizedBox(
+                // mismo ancho que el toggle para que la fecha quede centrada
+                width: isMobile ? _ViewToggle.compactWidth : _ViewToggle.fullWidth,
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: widget.headerTrailing ?? const SizedBox.shrink(),
+                  child: widget.headerTrailing,
                 ),
               ),
             ],
           ),
         ),
+        const Divider(height: 1),
+        // ── Calendario ────────────────────────────────────────────────────
         Expanded(
           child: SfCalendar(
             controller: _calendarController,
@@ -197,15 +226,13 @@ class _SfCalendarWidgetState extends State<SfCalendarWidget> {
                 fontWeight: FontWeight.w400,
               ),
             ),
-            view: defaultView,
-            allowedViews: const [CalendarView.week, CalendarView.day],
+            view: effectiveView,
             dataSource: AppointmentsDataSource(widget.appointments),
             appointmentBuilder: _buildAppointment,
             onTap: _handleTap,
             onViewChanged: (ViewChangedDetails details) {
               if (details.visibleDates.isEmpty) return;
               final newDate = details.visibleDates.first;
-              // Diferir setState: onViewChanged puede dispararse durante el build del calendario.
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted && _visibleDate != newDate) {
                   setState(() => _visibleDate = newDate);
@@ -215,6 +242,60 @@ class _SfCalendarWidgetState extends State<SfCalendarWidget> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Toggle segmentado para cambiar entre vista día y semana.
+class _ViewToggle extends StatelessWidget {
+  const _ViewToggle({
+    required this.current,
+    required this.onChanged,
+    this.compact = false,
+  });
+
+  final CalendarView current;
+  final ValueChanged<CalendarView> onChanged;
+
+  /// Si `true` muestra solo íconos (mobile); si `false` muestra ícono + texto.
+  final bool compact;
+
+  static const double compactWidth = 80;
+  static const double fullWidth = 140;
+
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedButton<CalendarView>(
+      style: SegmentedButton.styleFrom(
+        backgroundColor: AppColors.surface,
+        selectedBackgroundColor: AppColors.accentLight,
+        selectedForegroundColor: AppColors.accent,
+        foregroundColor: AppColors.secondary,
+        side: const BorderSide(color: AppColors.border),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 8 : 12,
+          vertical: 6,
+        ),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        visualDensity: VisualDensity.compact,
+      ),
+      segments: [
+        ButtonSegment<CalendarView>(
+          value: CalendarView.day,
+          icon: const Icon(Icons.view_day_outlined, size: 16),
+          label: compact ? null : const Text('Día'),
+          tooltip: 'Vista diaria',
+        ),
+        ButtonSegment<CalendarView>(
+          value: CalendarView.week,
+          icon: const Icon(Icons.view_week_outlined, size: 16),
+          label: compact ? null : const Text('Semana'),
+          tooltip: 'Vista semanal',
+        ),
+      ],
+      selected: {current},
+      onSelectionChanged: (selection) => onChanged(selection.first),
+      showSelectedIcon: false,
     );
   }
 }
@@ -241,16 +322,18 @@ class AppointmentsDataSource extends CalendarDataSource {
   }
 }
 
-Widget _buildAppointment(BuildContext context,
-    CalendarAppointmentDetails calendarAppointmentDetails) {
-  final CustomAppointment customAppointment =
+Widget _buildAppointment(
+  BuildContext context,
+  CalendarAppointmentDetails calendarAppointmentDetails,
+) {
+  final CustomAppointment ca =
       calendarAppointmentDetails.appointments.first as CustomAppointment;
 
   return CustomAppointmentWidget(
-    service: customAppointment.service,
-    clientName: customAppointment.subject,
-    deposit: customAppointment.deposit,
-    color: customAppointment.color,
-    owner: customAppointment.owner,
+    service: ca.service,
+    clientName: ca.subject,
+    deposit: ca.deposit,
+    color: ca.color,
+    owner: ca.owner,
   );
 }

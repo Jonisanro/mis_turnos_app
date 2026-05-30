@@ -10,9 +10,17 @@ class NewAppointmentValidators {
   static const _seleccionaHoraFin = 'Seleccioná hora de fin';
   static const _horaFinDespuesInicio = 'La hora fin debe ser después del inicio';
 
-  /// Campo obligatorio (nombre, apellido, motivo).
+  /// Campo obligatorio.
   static String? required(String? value) {
-    if (value == null || value.isEmpty) return _campoRequerido;
+    if (value == null || value.trim().isEmpty) return _campoRequerido;
+    return null;
+  }
+
+  /// Teléfono: opcional, pero si se ingresó algo debe tener al menos 6 dígitos.
+  static String? phone(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 6) return 'Ingresá al menos 6 dígitos';
     return null;
   }
 
@@ -36,6 +44,15 @@ class NewAppointmentValidators {
     return null;
   }
 
-  /// Motivo obligatorio.
+  /// Servicio obligatorio.
   static String? motivo(String? value) => required(value);
+
+  /// Monto de seña: requerido y > 0 cuando la seña está activada.
+  static String? depositAmount(String? value, {required bool hasDeposit}) {
+    if (!hasDeposit) return null;
+    if (value == null || value.trim().isEmpty) return 'Ingresá el monto de la seña';
+    final amount = double.tryParse(value.trim());
+    if (amount == null || amount <= 0) return 'El monto debe ser mayor a 0';
+    return null;
+  }
 }

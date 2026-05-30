@@ -36,6 +36,7 @@ void main() {
       final appointment = Appointment(
         id: 'abc',
         clientName: 'Ana García López',
+        phone: '1155443322',
         dateTime: DateTime(2026, 5, 29, 14, 0),
         duration: 60,
         hasPaid: true,
@@ -48,8 +49,9 @@ void main() {
 
       controller.loadFrom(appointment);
 
-      expect(controller.nombre.text, 'Ana');
-      expect(controller.apellido.text, 'García López');
+      // clientName ahora es un único campo con el nombre completo
+      expect(controller.clientName.text, 'Ana García López');
+      expect(controller.telefono.text, '1155443322');
       expect(controller.fecha.text, '2026-05-29');
       expect(controller.horaInicio.text, '14:00');
       expect(controller.horaFin.text, '15:00');

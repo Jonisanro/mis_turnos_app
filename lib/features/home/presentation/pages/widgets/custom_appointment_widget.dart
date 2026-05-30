@@ -90,7 +90,7 @@ class CustomAppointmentWidget extends StatelessWidget {
 
         if (compact) {
           return Tooltip(
-            triggerMode: TooltipTriggerMode.tap,
+            triggerMode: TooltipTriggerMode.longPress,
             message: _tooltipMessage,
             preferBelow: false,
             child: content,
