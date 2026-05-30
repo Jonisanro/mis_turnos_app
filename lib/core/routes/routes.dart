@@ -29,20 +29,29 @@ class AppRoutes {
   /// Rutas públicas (accesibles sin sesión iniciada).
   static const _publicRoutes = {'/', '/register'};
 
+  /// Lógica pura del guard de rutas, extraída para poder testearla sin Firebase.
+  /// Devuelve la ruta a la que redirigir, o `null` si no hay que redirigir.
+  static String? computeRedirect({
+    required bool loggedIn,
+    required String matchedLocation,
+  }) {
+    final isPublic = _publicRoutes.contains(matchedLocation);
+
+    // Sin sesión y queriendo entrar a una ruta protegida → al login.
+    if (!loggedIn && !isPublic) return '/';
+    // Con sesión y parado en login/registro → a la home.
+    if (loggedIn && isPublic) return '/home';
+    return null;
+  }
+
   static final GoRouter router = GoRouter(
     initialLocation: '/',
     refreshListenable:
         GoRouterRefreshStream(FirebaseAuth.instance.authStateChanges()),
-    redirect: (context, state) {
-      final loggedIn = FirebaseAuth.instance.currentUser != null;
-      final isPublic = _publicRoutes.contains(state.matchedLocation);
-
-      // Sin sesión y queriendo entrar a una ruta protegida → al login.
-      if (!loggedIn && !isPublic) return '/';
-      // Con sesión y parado en login/registro → a la home.
-      if (loggedIn && isPublic) return '/home';
-      return null;
-    },
+    redirect: (context, state) => computeRedirect(
+      loggedIn: FirebaseAuth.instance.currentUser != null,
+      matchedLocation: state.matchedLocation,
+    ),
     routes: [
       GoRoute(
         path: '/',

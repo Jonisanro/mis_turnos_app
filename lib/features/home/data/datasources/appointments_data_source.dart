@@ -6,15 +6,30 @@ abstract class AppointmentsDataSource {
 
   /// Stream en tiempo real de los turnos del usuario.
   Stream<List<AppointmentModel>> watchAppointments(String ownerId);
+
+  /// Crea o reemplaza un turno.
+  Future<void> addAppointment(AppointmentModel turno);
+
+  /// Actualiza un turno existente (mismo id).
+  Future<void> updateAppointment(AppointmentModel turno);
+
+  /// Elimina el turno con el id dado.
+  Future<void> deleteAppointment(String id);
 }
 
 class AppointmentRemoteDataSourceImpl implements AppointmentsDataSource {
-  final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
+  /// [firestore] es inyectable para poder usar un fake en tests; en producción
+  /// usa la instancia por defecto.
+  AppointmentRemoteDataSourceImpl({FirebaseFirestore? firestore})
+      : _firebaseFirestore = firestore ?? FirebaseFirestore.instance;
+
+  final FirebaseFirestore _firebaseFirestore;
+
+  CollectionReference<Map<String, dynamic>> get _collection =>
+      _firebaseFirestore.collection('appointment');
 
   Query<Map<String, dynamic>> _ownerQuery(String ownerId) =>
-      _firebaseFirestore
-          .collection('appointment')
-          .where('owner', isEqualTo: ownerId);
+      _collection.where('owner', isEqualTo: ownerId);
 
   @override
   Future<List<AppointmentModel>> getAppointments(String ownerId) async {
@@ -33,5 +48,20 @@ class AppointmentRemoteDataSourceImpl implements AppointmentsDataSource {
     return _ownerQuery(ownerId).snapshots().map((snapshot) => snapshot.docs
         .map((doc) => AppointmentModel.fromMap(doc.data()))
         .toList());
+  }
+
+  @override
+  Future<void> addAppointment(AppointmentModel turno) async {
+    await _collection.doc(turno.id).set(turno.toMap());
+  }
+
+  @override
+  Future<void> updateAppointment(AppointmentModel turno) async {
+    await _collection.doc(turno.id).set(turno.toMap());
+  }
+
+  @override
+  Future<void> deleteAppointment(String id) async {
+    await _collection.doc(id).delete();
   }
 }

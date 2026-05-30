@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mis_turnos_app/features/home/data/datasources/appointments_data_source.dart';
 import 'package:mis_turnos_app/features/home/data/models/appointment_model.dart';
 import 'package:mis_turnos_app/features/home/domain/entities/appointment.dart';
@@ -6,7 +5,6 @@ import 'package:mis_turnos_app/features/home/domain/repositories/appointments_re
 
 class AppointmentsRepositoryImpl implements AppointmentsRepository {
   final AppointmentsDataSource remoteDataSource;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   AppointmentsRepositoryImpl({required this.remoteDataSource});
 
@@ -43,16 +41,16 @@ class AppointmentsRepositoryImpl implements AppointmentsRepository {
 
   @override
   Future<void> agregarTurno(AppointmentModel turno) async {
-    await _firestore.collection('appointment').doc(turno.id).set(turno.toMap());
+    await remoteDataSource.addAppointment(turno);
   }
 
   @override
   Future<void> editarTurno(AppointmentModel turno) async {
-    await _firestore.collection('appointment').doc(turno.id).set(turno.toMap());
+    await remoteDataSource.updateAppointment(turno);
   }
 
   @override
   Future<void> eliminarTurno(String id) async {
-    await _firestore.collection('appointment').doc(id).delete();
+    await remoteDataSource.deleteAppointment(id);
   }
 }
