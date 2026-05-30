@@ -12,26 +12,28 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mis turnos'),
+        title: const Text('Mis Turnos'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.design_services),
+            icon: const Icon(Icons.design_services_outlined),
             tooltip: 'Mis servicios',
             onPressed: () => context.push('/services'),
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded),
             tooltip: 'Cerrar sesión',
             onPressed: () async {
-              // El guard del router redirige a / al cerrar sesión.
               await ref.read(loginProvider).signOut();
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
+          const Divider(height: 1),
           const DaySummaryWidget(),
+          const SizedBox(height: 8),
           Expanded(child: CalendarWidget()),
         ],
       ),

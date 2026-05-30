@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mis_turnos_app/core/theme/app_theme.dart';
 import 'package:mis_turnos_app/features/login/presentation/providers/login_provider.dart';
 import 'package:mis_turnos_app/features/services/data/models/service_model.dart';
 import 'package:mis_turnos_app/features/services/domain/entities/service.dart';
@@ -9,14 +10,35 @@ import 'package:uuid/uuid.dart';
 class ServicesPage extends ConsumerWidget {
   const ServicesPage({super.key});
 
-  Future<void> _openServiceDialog(
-    BuildContext context, {
-    Service? service,
-  }) async {
+  Future<void> _openServiceDialog(BuildContext context,
+      {Service? service}) async {
     await showDialog(
       context: context,
       builder: (_) => ServiceFormDialog(service: service),
     );
+  }
+
+  Future<void> _confirmDelete(
+      BuildContext context, WidgetRef ref, Service s) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar servicio'),
+        content: Text('¿Eliminar "${s.name}"?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Eliminar',
+                  style: TextStyle(color: AppColors.error))),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await ref.read(servicesProvider.notifier).deleteService(s.id);
+    }
   }
 
   @override
@@ -35,36 +57,82 @@ class ServicesPage extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (services) {
           if (services.isEmpty) {
-            return const Center(
-              child: Text(
-                  'Todavía no cargaste servicios.\nTocá "Nuevo servicio" para empezar.',
-                  textAlign: TextAlign.center),
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentLight,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(Icons.design_services_outlined,
+                        size: 36, color: AppColors.accent),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Todavía no cargaste servicios',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary)),
+                  const SizedBox(height: 6),
+                  const Text('Tocá "Nuevo servicio" para empezar',
+                      style:
+                          TextStyle(fontSize: 14, color: AppColors.secondary)),
+                ],
+              ),
             );
           }
           return ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: services.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, __) =>
+                const Divider(height: 1, indent: 72),
             itemBuilder: (context, index) {
               final s = services[index];
+              final initials = s.name.isNotEmpty
+                  ? s.name
+                      .trim()
+                      .split(' ')
+                      .take(2)
+                      .map((w) => w[0].toUpperCase())
+                      .join()
+                  : '?';
+
               return ListTile(
-                title: Text(s.name),
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.accentLight,
+                  child: Text(
+                    initials,
+                    style: const TextStyle(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                title: Text(s.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text(
-                    '${s.durationMinutes} min · \$${s.price.toStringAsFixed(0)}'),
+                  '${s.durationMinutes} min · \$${s.price.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                      fontSize: 13, color: AppColors.secondary),
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit),
+                      icon: const Icon(Icons.edit_outlined,
+                          size: 20, color: AppColors.secondary),
                       onPressed: () =>
                           _openServiceDialog(context, service: s),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () async {
-                        await ref
-                            .read(servicesProvider.notifier)
-                            .deleteService(s.id);
-                      },
+                      icon: const Icon(Icons.delete_outline,
+                          size: 20, color: AppColors.error),
+                      onPressed: () => _confirmDelete(context, ref, s),
                     ),
                   ],
                 ),
@@ -78,9 +146,10 @@ class ServicesPage extends ConsumerWidget {
   }
 }
 
+// ── Diálogo de creación/edición de servicio ──────────────────────────────────
+
 class ServiceFormDialog extends ConsumerStatefulWidget {
   const ServiceFormDialog({super.key, this.service});
-
   final Service? service;
 
   @override
@@ -100,8 +169,8 @@ class _ServiceFormDialogState extends ConsumerState<ServiceFormDialog> {
     super.initState();
     final s = widget.service;
     _nameController = TextEditingController(text: s?.name ?? '');
-    _priceController =
-        TextEditingController(text: s != null ? s.price.toStringAsFixed(0) : '');
+    _priceController = TextEditingController(
+        text: s != null ? s.price.toStringAsFixed(0) : '');
     _durationController = TextEditingController(
         text: s != null ? s.durationMinutes.toString() : '');
   }
@@ -116,7 +185,6 @@ class _ServiceFormDialogState extends ConsumerState<ServiceFormDialog> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-
     final ownerId = ref.read(loginProvider).currentUser?.uid;
     if (ownerId == null) return;
 
@@ -151,18 +219,25 @@ class _ServiceFormDialogState extends ConsumerState<ServiceFormDialog> {
           children: [
             TextFormField(
               controller: _nameController,
+              textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: 'Nombre del servicio',
                 hintText: 'Ej: Uñas esculpidas',
+                prefixIcon:
+                    Icon(Icons.label_outline, color: AppColors.secondary),
               ),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             TextFormField(
               controller: _durationController,
               decoration: const InputDecoration(
-                labelText: 'Duración (minutos)',
+                labelText: 'Duración',
+                hintText: '60',
+                suffixText: 'min',
+                prefixIcon:
+                    Icon(Icons.schedule_outlined, color: AppColors.secondary),
               ),
               keyboardType: TextInputType.number,
               validator: (v) {
@@ -171,12 +246,14 @@ class _ServiceFormDialogState extends ConsumerState<ServiceFormDialog> {
                 return null;
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             TextFormField(
               controller: _priceController,
               decoration: const InputDecoration(
                 labelText: 'Precio',
                 prefixText: '\$ ',
+                prefixIcon:
+                    Icon(Icons.payments_outlined, color: AppColors.secondary),
               ),
               keyboardType: TextInputType.number,
               validator: (v) {
@@ -189,7 +266,7 @@ class _ServiceFormDialogState extends ConsumerState<ServiceFormDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        OutlinedButton(
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),

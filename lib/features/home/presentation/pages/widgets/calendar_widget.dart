@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:mis_turnos_app/core/theme/app_theme.dart';
 import 'package:mis_turnos_app/core/constants/breakpoints.dart';
 import 'package:mis_turnos_app/features/home/domain/entities/appointment.dart'
     as model;
@@ -180,11 +181,21 @@ class _SfCalendarWidgetState extends State<SfCalendarWidget> {
             controller: _calendarController,
             initialDisplayDate: DateTime.now(),
             headerHeight: 0,
-            cellBorderColor: Colors.black,
-            backgroundColor: Colors.pink[50],
+            cellBorderColor: AppColors.border,
+            backgroundColor: AppColors.background,
+            todayHighlightColor: AppColors.accent,
+            selectionDecoration: BoxDecoration(
+              border: Border.all(color: AppColors.accent, width: 2),
+              borderRadius: BorderRadius.circular(4),
+            ),
             timeSlotViewSettings: const TimeSlotViewSettings(
               timeInterval: Duration(minutes: 60),
               timeIntervalHeight: 80,
+              timeTextStyle: TextStyle(
+                fontSize: 12,
+                color: AppColors.secondary,
+                fontWeight: FontWeight.w400,
+              ),
             ),
             view: defaultView,
             allowedViews: const [CalendarView.week, CalendarView.day],
@@ -223,7 +234,7 @@ class AppointmentsDataSource extends CalendarDataSource {
         deposit: appointment.deposit,
         endTime:
             appointment.dateTime.add(Duration(minutes: appointment.duration)),
-        color: appointment.hasPaid ? Colors.green : Colors.red,
+        color: appointmentColor(appointment.hasPaid, appointment.deposit),
         notes: appointment.comments,
       );
     }).toList();

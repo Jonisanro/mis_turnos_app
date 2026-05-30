@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:mis_turnos_app/core/routes/routes.dart';
+import 'package:mis_turnos_app/core/theme/app_theme.dart';
 import 'package:mis_turnos_app/firebase_options.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:responsive_breakpoints/responsive_breakpoints.dart';
@@ -26,7 +27,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       // Tema con breakpoints responsive (mobile / tablet / desktop) para toda la app.
-      theme: ThemeData(
+      theme: AppTheme.light.copyWith(
         extensions: [
           ResponsiveBreakpointTheme<MaterialUIBreakpoint>(
             breakpoints: MaterialUIBreakpoint.values,

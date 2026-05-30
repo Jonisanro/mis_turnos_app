@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:mis_turnos_app/core/theme/app_theme.dart';
 import 'package:mis_turnos_app/features/home/domain/entities/appointment.dart';
 import 'package:mis_turnos_app/features/home/presentation/providers/appointments_provider.dart';
 
-/// Resumen del día: cantidad de turnos de hoy, próximo turno y total de señas.
+/// Resumen del día: 3 mini-cards con acento violeta.
 class DaySummaryWidget extends ConsumerWidget {
   const DaySummaryWidget({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final turnos = ref.watch(appointmentsProvider).valueOrNull ?? [];
-
     final now = DateTime.now();
-    final today = turnos.where((t) =>
-        t.dateTime.year == now.year &&
-        t.dateTime.month == now.month &&
-        t.dateTime.day == now.day).toList()
+
+    final today = turnos
+        .where((t) =>
+            t.dateTime.year == now.year &&
+            t.dateTime.month == now.month &&
+            t.dateTime.day == now.day)
+        .toList()
       ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
 
     final totalSenias =
@@ -31,40 +34,73 @@ class DaySummaryWidget extends ConsumerWidget {
     }
 
     final nextLabel = next == null
-        ? 'Sin próximos hoy'
-        : '${DateFormat('HH:mm').format(next.dateTime)} · ${next.clientName}';
+        ? '—'
+        : '${DateFormat('HH:mm').format(next.dateTime)}  ${next.clientName}';
 
-    return Card(
-      margin: const EdgeInsets.all(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _SummaryItem(
-              icon: Icons.event_available,
-              label: 'Turnos hoy',
-              value: '${today.length}',
-            ),
-            _SummaryItem(
-              icon: Icons.schedule,
-              label: 'Próximo',
-              value: nextLabel,
-            ),
-            _SummaryItem(
-              icon: Icons.attach_money,
-              label: 'Señas hoy',
-              value: '\$${totalSenias.toStringAsFixed(0)}',
-            ),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // En pantallas muy angostas apilamos en columna
+          if (constraints.maxWidth < 400) {
+            return Column(
+              children: [
+                _SummaryCard(
+                  icon: Icons.event_available_rounded,
+                  label: 'Turnos hoy',
+                  value: '${today.length}',
+                ),
+                const SizedBox(height: 8),
+                _SummaryCard(
+                  icon: Icons.schedule_rounded,
+                  label: 'Próximo',
+                  value: nextLabel,
+                ),
+                const SizedBox(height: 8),
+                _SummaryCard(
+                  icon: Icons.payments_outlined,
+                  label: 'Señas hoy',
+                  value: '\$${totalSenias.toStringAsFixed(0)}',
+                ),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(
+                child: _SummaryCard(
+                  icon: Icons.event_available_rounded,
+                  label: 'Turnos hoy',
+                  value: '${today.length}',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: _SummaryCard(
+                  icon: Icons.schedule_rounded,
+                  label: 'Próximo',
+                  value: nextLabel,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _SummaryCard(
+                  icon: Icons.payments_outlined,
+                  label: 'Señas hoy',
+                  value: '\$${totalSenias.toStringAsFixed(0)}',
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-class _SummaryItem extends StatelessWidget {
-  const _SummaryItem({
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({
     required this.icon,
     required this.label,
     required this.value,
@@ -76,20 +112,53 @@ class _SummaryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Flexible(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(12),
+        border: const Border(
+          left: BorderSide(color: AppColors.accent, width: 3),
+          top: BorderSide(color: AppColors.border),
+          right: BorderSide(color: AppColors.border),
+          bottom: BorderSide(color: AppColors.border),
+        ),
+      ),
+      child: Row(
         children: [
-          Icon(icon, color: Colors.pink[300]),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.accentLight,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: AppColors.accent, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.secondary,
+                        fontWeight: FontWeight.w500)),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
