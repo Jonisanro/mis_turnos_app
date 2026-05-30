@@ -11,6 +11,20 @@ import 'package:mis_turnos_app/features/home/presentation/pages/widgets/new_appo
 import 'package:mis_turnos_app/features/home/presentation/providers/appointments_provider.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
+/// Abstracción sobre [CalendarView] de Syncfusion para diferenciar
+/// "3 días" (mobile) de "semana" (desktop), que usan el mismo [CalendarView.week]
+/// pero con distinto `numberOfDaysInView`.
+enum AppCalendarView { day, threeDays, week }
+
+CalendarView _toSfView(AppCalendarView v) =>
+    v == AppCalendarView.day ? CalendarView.day : CalendarView.week;
+
+/// Días visibles para `TimeSlotViewSettings.numberOfDaysInView`.
+/// `-1` = comportamiento natural de la vista (1 día para `day`, 7 para `week`);
+/// `threeDays` fuerza 3 columnas.
+int _toDaysCount(AppCalendarView v) =>
+    v == AppCalendarView.threeDays ? 3 : -1;
+
 class CalendarWidget extends ConsumerStatefulWidget {
   const CalendarWidget({super.key});
 
@@ -84,7 +98,7 @@ class _SfCalendarWidgetState extends State<SfCalendarWidget> {
   late DateTime _visibleDate;
 
   /// Vista actual. `null` = usar el default responsive (day en mobile, week en desktop).
-  CalendarView? _currentView;
+  AppCalendarView? _currentView;
 
   @override
   void initState() {
@@ -98,13 +112,14 @@ class _SfCalendarWidgetState extends State<SfCalendarWidget> {
     super.dispose();
   }
 
-  CalendarView _effectiveView(BuildContext context) =>
-      _currentView ?? (context.isMobile ? CalendarView.day : CalendarView.week);
+  AppCalendarView _effectiveView(BuildContext context) =>
+      _currentView ??
+      (context.isMobile ? AppCalendarView.day : AppCalendarView.week);
 
-  void _setView(CalendarView view) {
+  void _setView(AppCalendarView view) {
     // Cambiar el controller ES la forma correcta de cambiar la vista en Syncfusion.
     // Actualizar solo la prop `view:` del widget no es suficiente cuando hay controller.
-    _calendarController.view = view;
+    _calendarController.view = _toSfView(view);
     setState(() => _currentView = view);
   }
 
@@ -155,6 +170,7 @@ class _SfCalendarWidgetState extends State<SfCalendarWidget> {
                 current: effectiveView,
                 onChanged: _setView,
                 compact: isMobile,
+                isMobile: isMobile,
               ),
               // Fecha centrada con navegación
               Expanded(
@@ -165,7 +181,7 @@ class _SfCalendarWidgetState extends State<SfCalendarWidget> {
                     IconButton(
                       onPressed: () => _calendarController.backward?.call(),
                       icon: const Icon(Icons.arrow_back_ios, size: 16),
-                      tooltip: effectiveView == CalendarView.day
+                      tooltip: effectiveView == AppCalendarView.day
                           ? 'Día anterior'
                           : 'Semana anterior',
                       padding: const EdgeInsets.all(8),
@@ -182,7 +198,7 @@ class _SfCalendarWidgetState extends State<SfCalendarWidget> {
                     IconButton(
                       onPressed: () => _calendarController.forward?.call(),
                       icon: const Icon(Icons.arrow_forward_ios, size: 16),
-                      tooltip: effectiveView == CalendarView.day
+                      tooltip: effectiveView == AppCalendarView.day
                           ? 'Día siguiente'
                           : 'Semana siguiente',
                       padding: const EdgeInsets.all(8),
@@ -217,16 +233,17 @@ class _SfCalendarWidgetState extends State<SfCalendarWidget> {
               border: Border.all(color: AppColors.accent, width: 2),
               borderRadius: BorderRadius.circular(4),
             ),
-            timeSlotViewSettings: const TimeSlotViewSettings(
-              timeInterval: Duration(minutes: 60),
+            timeSlotViewSettings: TimeSlotViewSettings(
+              timeInterval: const Duration(minutes: 60),
               timeIntervalHeight: 80,
-              timeTextStyle: TextStyle(
+              numberOfDaysInView: _toDaysCount(effectiveView), // 3 días en mobile
+              timeTextStyle: const TextStyle(
                 fontSize: 12,
                 color: AppColors.secondary,
                 fontWeight: FontWeight.w400,
               ),
             ),
-            view: effectiveView,
+            view: _toSfView(effectiveView),
             dataSource: AppointmentsDataSource(widget.appointments),
             appointmentBuilder: _buildAppointment,
             onTap: _handleTap,
@@ -246,16 +263,21 @@ class _SfCalendarWidgetState extends State<SfCalendarWidget> {
   }
 }
 
-/// Toggle segmentado para cambiar entre vista día y semana.
+/// Toggle segmentado para cambiar de vista. En mobile ofrece "Día" / "3 días";
+/// en desktop "Día" / "Semana".
 class _ViewToggle extends StatelessWidget {
   const _ViewToggle({
     required this.current,
     required this.onChanged,
+    required this.isMobile,
     this.compact = false,
   });
 
-  final CalendarView current;
-  final ValueChanged<CalendarView> onChanged;
+  final AppCalendarView current;
+  final ValueChanged<AppCalendarView> onChanged;
+
+  /// En mobile el segundo segmento es "3 días"; en desktop es "Semana".
+  final bool isMobile;
 
   /// Si `true` muestra solo íconos (mobile); si `false` muestra ícono + texto.
   final bool compact;
@@ -265,7 +287,7 @@ class _ViewToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SegmentedButton<CalendarView>(
+    return SegmentedButton<AppCalendarView>(
       style: SegmentedButton.styleFrom(
         backgroundColor: AppColors.surface,
         selectedBackgroundColor: AppColors.accentLight,
@@ -280,18 +302,26 @@ class _ViewToggle extends StatelessWidget {
         visualDensity: VisualDensity.compact,
       ),
       segments: [
-        ButtonSegment<CalendarView>(
-          value: CalendarView.day,
+        ButtonSegment<AppCalendarView>(
+          value: AppCalendarView.day,
           icon: const Icon(Icons.view_day_outlined, size: 16),
           label: compact ? null : const Text('Día'),
           tooltip: 'Vista diaria',
         ),
-        ButtonSegment<CalendarView>(
-          value: CalendarView.week,
-          icon: const Icon(Icons.view_week_outlined, size: 16),
-          label: compact ? null : const Text('Semana'),
-          tooltip: 'Vista semanal',
-        ),
+        if (isMobile)
+          ButtonSegment<AppCalendarView>(
+            value: AppCalendarView.threeDays,
+            icon: const Icon(Icons.view_column_outlined, size: 16),
+            label: compact ? null : const Text('3 días'),
+            tooltip: 'Vista de 3 días',
+          )
+        else
+          ButtonSegment<AppCalendarView>(
+            value: AppCalendarView.week,
+            icon: const Icon(Icons.view_week_outlined, size: 16),
+            label: const Text('Semana'),
+            tooltip: 'Vista semanal',
+          ),
       ],
       selected: {current},
       onSelectionChanged: (selection) => onChanged(selection.first),
